@@ -102,8 +102,8 @@ public class Application {
 
                 bestReturnRoute.add(checkpoint);
 
-                Node stopNode2 = initialGraph.getNode(checkpoint.getName());
-                leftReturnPath = stopNode2.getShortestPath();
+                stopNode = initialGraph.getNode(checkpoint.getName());
+                leftReturnPath = stopNode.getShortestPath();
                 Collections.reverse(leftReturnPath);
 
                 leftShops.remove(checkpoint.getName());
