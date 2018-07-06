@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.rakuten.challenge.algorithm.Dijkstra;
 import com.rakuten.challenge.model.Graph;
@@ -77,6 +78,7 @@ public class Application {
             var initialGraph = Dijkstra.calculateShortestPathFromSource(graph, graph.getNode(0));
 
             List<Node> bestRoute = new ArrayList<>();
+            List<Node> bestReturnRoute = new ArrayList<>();
             Double totalDist = 0d;
 
             List<Integer> leftShops = new ArrayList<>(prices.keySet());
@@ -96,17 +98,49 @@ public class Application {
                 leftShops.removeAll(checkpoint.getShortestPath().stream().map(Node::getName).collect(Collectors.toList()));
             }
 
-            System.out.println("=== === === === ===");
-            System.out.println("best optim I think is : ");
-            System.out.print("Node : " + 0);
-            bestRoute.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
+            // while return path fih maychaf
+            // return road maybe i'll go to another road from a crossroad
             Node stopNode = initialGraph.getNode(bestRoute.get(bestRoute.size() - 1).getName());
             List<Node> returnPath = stopNode.getShortestPath();
             Collections.reverse(returnPath);
-            returnPath.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
+
+            List<Node> leftReturnPath = new ArrayList<>(returnPath);
+            while (!leftReturnPath.isEmpty()) {
+                Node inRouteNode = leftReturnPath.get(0);
+                leftReturnPath.remove(inRouteNode);
+
+                bestReturnRoute.add(inRouteNode);
+                Node checkpoint = nextNode(graph, initialGraph, leftShops, inRouteNode);
+                if (inRouteNode == checkpoint) {
+                    continue;
+                }
+
+                bestReturnRoute.add(checkpoint);
+
+                Node stopNode2 = initialGraph.getNode(checkpoint.getName());
+                leftReturnPath = stopNode2.getShortestPath();
+                Collections.reverse(leftReturnPath);
+
+                leftShops.remove(checkpoint.getName());
+                leftShops.removeAll(checkpoint.getShortestPath().stream().map(Node::getName).collect(Collectors.toList()));
+            }
+
+            System.out.println("=== === === === ===");
+            System.out.println("Best optim I think is : ");
+            List<Node> totalRoute = new ArrayList<>();
+            totalRoute.add(graph.getNode(0));
+            totalRoute.addAll(bestRoute);
+            totalRoute.addAll(bestReturnRoute);
+
+            totalRoute.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
+
             System.out.println();
-            double sum = bestRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
-            System.out.println("total gain is " + (sum - totalDist - stopNode.getDistance()));
+            double sum = totalRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
+            double dist = IntStream.range(0, totalRoute.size() - 1)
+                    .mapToDouble(i -> totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1)))
+                    .sum();
+
+            System.out.println("total gain is " + (sum - dist));
 
             lineNumber = lineNumber + dvds + roads + 3;
         }
@@ -119,7 +153,7 @@ public class Application {
         var calculatedGraph2 = Dijkstra.calculateShortestPathFromSource(copy2, start2);
 
         // calculation of profit
-        Node firstOptimisation2 = firstOptimisation;
+        Node resultNode = firstOptimisation;
         var firstOpt2 = 0d;
         for (int i = 0, integersSize = leftShops.size(); i < integersSize; i++) {
             Integer shop = leftShops.get(i);
@@ -135,12 +169,12 @@ public class Application {
             }
             if (opt - retour - dist > firstOpt2) {
                 firstOpt2 = opt - retour - dist;
-                firstOptimisation2 = calculatedGraph2.getNode(shop);
+                resultNode = calculatedGraph2.getNode(shop);
             }
 
             // TODO : if a shop is on the same road needs to check for cross roads
             // System.out.println("shop: " + shop + " dist: " + dist + " opt: " + opt);
         }
-        return firstOptimisation2;
+        return resultNode;
     }
 }
