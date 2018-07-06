@@ -24,7 +24,7 @@ public class Application {
         }
 
         // read first line number of scenarios
-        var scenarios = Integer.valueOf(lines.get(0).trim());
+        var scenarios = parse(lines.get(0).trim());
 
         // remove header lines
         lines = lines.subList(2, lines.size());
@@ -41,36 +41,23 @@ public class Application {
             Graph graph = new Graph();
 
             graph.addNode(new Node(0));
-            var stores = Integer.valueOf(line[0]);
+
             // create stores ==> nodes
-            for (var store = 1; store <= stores; store++) {
-                graph.addNode(new Node(store));
-            }
+            var stores = parse(line[0]);
+            stores(graph, stores);
 
             // create connections
-            var roads = Integer.valueOf(line[1]);
-            for (var road = 1; road <= roads; road++) {
-                // create nodes with store number and create
-                String[] roadLine = lines.get(lineNumber + road).split(" ");
-                var start = Integer.valueOf(roadLine[0]);
-                var end = Integer.valueOf(roadLine[1]);
-                var weight = Double.valueOf(roadLine[2]);
-
-                graph.getNode(start).addDestination(graph.getNode(end), weight);
-                graph.getNode(end).addDestination(graph.getNode(start), weight);
-            }
+            var roads = parse(line[1]);
+            roads(lines, lineNumber, graph, roads);
 
             // get necessary shops
-            var prices = new HashMap<Integer, Double>();
-            var dvds = Integer.valueOf(lines.get(lineNumber + roads + 1));
-            for (var dvd = 1; dvd <= dvds; dvd++) {
-                String[] optimizations = lines.get(lineNumber + roads + dvd + 1).split(" ");
-                var shopNumber = Integer.valueOf(optimizations[0]);
-                var optimization = Double.valueOf(optimizations[1]);
-
-                graph.getNode(shopNumber).setPrize(optimization);
-                prices.put(shopNumber, optimization);
+            if (lines.size() <= lineNumber + roads + 1) {
+                System.out.println("Don't leave the house");
+                continue;
             }
+            var prices = new HashMap<Integer, Double>();
+            var dvds = parse(lines.get(lineNumber + roads + 1));
+            dvds(lines, lineNumber, graph, roads, prices, dvds);
 
             // INIT ALL VARS FROM SCENARIO FINISHED
 
@@ -79,8 +66,8 @@ public class Application {
 
             List<Node> bestRoute = new ArrayList<>();
             List<Node> bestReturnRoute = new ArrayList<>();
-            Double totalDist = 0d;
 
+            // Shortest route and most profitable first way
             List<Integer> leftShops = new ArrayList<>(prices.keySet());
             Node start = graph.getNode(0);
             while (!leftShops.isEmpty()) {
@@ -90,7 +77,6 @@ public class Application {
                 }
 
                 start = checkpoint;
-                totalDist += checkpoint.getDistance();
                 bestRoute.addAll(checkpoint.getShortestPath().subList(1, checkpoint.getShortestPath().size()));
                 bestRoute.add(checkpoint);
 
@@ -98,7 +84,6 @@ public class Application {
                 leftShops.removeAll(checkpoint.getShortestPath().stream().map(Node::getName).collect(Collectors.toList()));
             }
 
-            // while return path fih maychaf
             // return road maybe i'll go to another road from a crossroad
             Node stopNode = initialGraph.getNode(bestRoute.get(bestRoute.size() - 1).getName());
             List<Node> returnPath = stopNode.getShortestPath();
@@ -125,6 +110,7 @@ public class Application {
                 leftShops.removeAll(checkpoint.getShortestPath().stream().map(Node::getName).collect(Collectors.toList()));
             }
 
+            // Print the results
             System.out.println("=== === === === ===");
             System.out.println("Best optim I think is : ");
             List<Node> totalRoute = new ArrayList<>();
@@ -140,9 +126,44 @@ public class Application {
                     .mapToDouble(i -> totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1)))
                     .sum();
 
-            System.out.println("total gain is " + (sum - dist));
+            if (sum - dist > 0) {
+                String value = String.format("%.2f", sum - dist);
+                System.out.println("David can save $" + value);
+            } else {
+                System.out.println("Don't leave the house");
+            }
 
             lineNumber = lineNumber + dvds + roads + 3;
+        }
+    }
+
+    private static void stores(Graph graph, Integer stores) {
+        for (var store = 1; store <= stores; store++) {
+            graph.addNode(new Node(store));
+        }
+    }
+
+    private static void roads(List<String> lines, int lineNumber, Graph graph, Integer roads) {
+        for (var road = 1; road <= roads; road++) {
+            // create nodes with store number and create
+            String[] roadLine = lines.get(lineNumber + road).split(" ");
+            var start = parse(roadLine[0]);
+            var end = parse(roadLine[1]);
+            var weight = parseD(roadLine[2]);
+
+            graph.getNode(start).addDestination(graph.getNode(end), weight);
+            graph.getNode(end).addDestination(graph.getNode(start), weight);
+        }
+    }
+
+    private static void dvds(List<String> lines, int lineNumber, Graph graph, Integer roads, HashMap<Integer, Double> prices, Integer dvds) {
+        for (var dvd = 1; dvd <= dvds; dvd++) {
+            String[] optimizations = lines.get(lineNumber + roads + dvd + 1).split(" ");
+            var shopNumber = parse(optimizations[0]);
+            var optimization = parseD(optimizations[1]);
+
+            graph.getNode(shopNumber).setPrize(optimization);
+            prices.put(shopNumber, optimization);
         }
     }
 
@@ -176,5 +197,21 @@ public class Application {
             // System.out.println("shop: " + shop + " dist: " + dist + " opt: " + opt);
         }
         return resultNode;
+    }
+
+    private static Integer parse(String val) {
+        try {
+            return Integer.valueOf(val);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static Double parseD(String val) {
+        try {
+            return Double.valueOf(val);
+        } catch (Exception e) {
+            return 0d;
+        }
     }
 }
