@@ -162,7 +162,8 @@ public class Application {
                     opt += calculatedGraph.getNode(node.getName()).getPrize();
                 }
             }
-            if (opt - retour - dist > bestOptimisation) {
+            var bestDist = Math.min(retour + dist, dist * 2);
+            if (opt - bestDist > bestOptimisation) {
                 bestOptimisation = opt - retour - dist;
                 resultNode = calculatedGraph.getNode(shop);
             }
