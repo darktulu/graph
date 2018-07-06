@@ -111,38 +111,75 @@ public class Application {
             }
 
             // Print the results
-            System.out.println("=== === === === ===");
-            System.out.println("Best optim I think is : ");
-            List<Node> totalRoute = new ArrayList<>();
-            totalRoute.add(graph.getNode(0));
-            totalRoute.addAll(bestRoute);
-            totalRoute.addAll(bestReturnRoute);
-
-            totalRoute.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
-
-            System.out.println();
-            double sum = totalRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
-            double dist = IntStream.range(0, totalRoute.size() - 1)
-                    .mapToDouble(i -> totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1)))
-                    .sum();
-
-            if (sum - dist > 0) {
-                String value = String.format("%.2f", sum - dist);
-                System.out.println("David can save $" + value);
-            } else {
-                System.out.println("Don't leave the house");
-            }
+            printTheResults(graph, bestRoute, bestReturnRoute);
 
             lineNumber = lineNumber + dvds + roads + 3;
         }
     }
 
+    private static void printTheResults(Graph graph, List<Node> bestRoute, List<Node> bestReturnRoute) {
+        System.out.println("=== === === === ===");
+        System.out.println("Best optim I think is : ");
+        List<Node> totalRoute = new ArrayList<>();
+        totalRoute.add(graph.getNode(0));
+        totalRoute.addAll(bestRoute);
+        totalRoute.addAll(bestReturnRoute);
+
+        totalRoute.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
+
+        System.out.println();
+        double sum = totalRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
+        double dist = IntStream.range(0, totalRoute.size() - 1)
+                .mapToDouble(i -> totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1)))
+                .sum();
+
+        if (sum - dist > 0) {
+            String value = String.format("%.2f", sum - dist);
+            System.out.println("David can save $" + value);
+        } else {
+            System.out.println("Don't leave the house");
+        }
+    }
+
+    private static Node nextNode(Graph graph, Graph initialGraph, List<Integer> leftShops, Node firstOptimisation) {
+        Graph copy = graph.copy();
+        Node start = copy.getNode(firstOptimisation.getName());
+
+        var calculatedGraph = Dijkstra.calculateShortestPathFromSource(copy, start);
+
+        // calculation of profit
+        Node resultNode = firstOptimisation;
+        var bestOptimisation = 0d;
+        for (int i = 0, integersSize = leftShops.size(); i < integersSize; i++) {
+            Integer shop = leftShops.get(i);
+            Double retour = initialGraph.getNode(shop).getDistance();
+            Double dist = calculatedGraph.getNode(shop).getDistance();
+
+            var opt = calculatedGraph.getNode(shop).getPrize();
+
+            for (var node : calculatedGraph.getNode(shop).getShortestPath()) {
+                if (leftShops.contains(node.getName())) {
+                    opt += calculatedGraph.getNode(node.getName()).getPrize();
+                }
+            }
+            if (opt - retour - dist > bestOptimisation) {
+                bestOptimisation = opt - retour - dist;
+                resultNode = calculatedGraph.getNode(shop);
+            }
+
+            // System.out.println("shop: " + shop + " dist: " + dist + " opt: " + opt);
+        }
+        return resultNode;
+    }
+
+    // PARSING METHODS NOT IMPORTANT...
     private static void stores(Graph graph, Integer stores) {
         for (var store = 1; store <= stores; store++) {
             graph.addNode(new Node(store));
         }
     }
 
+    // PARSING METHODS NOT IMPORTANT...
     private static void roads(List<String> lines, int lineNumber, Graph graph, Integer roads) {
         for (var road = 1; road <= roads; road++) {
             // create nodes with store number and create
@@ -156,7 +193,9 @@ public class Application {
         }
     }
 
-    private static void dvds(List<String> lines, int lineNumber, Graph graph, Integer roads, HashMap<Integer, Double> prices, Integer dvds) {
+    // PARSING METHODS NOT IMPORTANT...
+    private static void dvds(List<String> lines, int lineNumber, Graph graph,
+                             Integer roads, HashMap<Integer, Double> prices, Integer dvds) {
         for (var dvd = 1; dvd <= dvds; dvd++) {
             String[] optimizations = lines.get(lineNumber + roads + dvd + 1).split(" ");
             var shopNumber = parse(optimizations[0]);
@@ -167,38 +206,7 @@ public class Application {
         }
     }
 
-    private static Node nextNode(Graph graph, Graph initialGraph, List<Integer> leftShops, Node firstOptimisation) {
-        Graph copy2 = graph.copy();
-        Node start2 = copy2.getNode(firstOptimisation.getName());
-
-        var calculatedGraph2 = Dijkstra.calculateShortestPathFromSource(copy2, start2);
-
-        // calculation of profit
-        Node resultNode = firstOptimisation;
-        var firstOpt2 = 0d;
-        for (int i = 0, integersSize = leftShops.size(); i < integersSize; i++) {
-            Integer shop = leftShops.get(i);
-            Double retour = initialGraph.getNode(shop).getDistance();
-            Double dist = calculatedGraph2.getNode(shop).getDistance();
-
-            var opt = calculatedGraph2.getNode(shop).getPrize();
-
-            for (var node : calculatedGraph2.getNode(shop).getShortestPath()) {
-                if (leftShops.contains(node.getName())) {
-                    opt += calculatedGraph2.getNode(node.getName()).getPrize();
-                }
-            }
-            if (opt - retour - dist > firstOpt2) {
-                firstOpt2 = opt - retour - dist;
-                resultNode = calculatedGraph2.getNode(shop);
-            }
-
-            // TODO : if a shop is on the same road needs to check for cross roads
-            // System.out.println("shop: " + shop + " dist: " + dist + " opt: " + opt);
-        }
-        return resultNode;
-    }
-
+    // PARSING METHODS NOT IMPORTANT...
     private static Integer parse(String val) {
         try {
             return Integer.valueOf(val);
@@ -207,6 +215,7 @@ public class Application {
         }
     }
 
+    // PARSING METHODS NOT IMPORTANT...
     private static Double parseD(String val) {
         try {
             return Double.valueOf(val);
