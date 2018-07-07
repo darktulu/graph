@@ -145,6 +145,7 @@ public class Application {
                 continue;
             }
 
+            // TODO not like this needs brute force on every combinaison :/
             // best go round i found
             start = graph.getNode(0);
             leftShops = new ArrayList<>(prices.keySet());
