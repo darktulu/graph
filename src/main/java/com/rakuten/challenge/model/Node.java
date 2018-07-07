@@ -12,7 +12,7 @@ public class Node {
     private Double distance = Double.MAX_VALUE;
     private Double prize = 0d;
     private Boolean used = false;
-    Map<Node, Double> adjacentNodes = new HashMap<>();
+    private Map<Node, Double> adjacentNodes = new HashMap<>();
 
     public void addDestination(Node destination, Double distance) {
         adjacentNodes.put(destination, distance);
