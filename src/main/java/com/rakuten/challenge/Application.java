@@ -72,7 +72,7 @@ public class Application {
             Node start = graph.getNode(0);
             while (!leftShops.isEmpty()) {
                 Node checkpoint = nextNode(graph, initialGraph, leftShops, start);
-                if (start == checkpoint) {
+                if (start.equals(checkpoint)) {
                     break;
                 }
 
@@ -96,7 +96,7 @@ public class Application {
 
                 bestReturnRoute.add(inRouteNode);
                 Node checkpoint = nextNode(graph, initialGraph, leftShops, inRouteNode);
-                if (inRouteNode == checkpoint) {
+                if (inRouteNode.equals(checkpoint)) {
                     continue;
                 }
 
@@ -129,9 +129,10 @@ public class Application {
 
         System.out.println();
         double sum = totalRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
-        double dist = IntStream.range(0, totalRoute.size() - 1)
-                .mapToDouble(i -> totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1)))
-                .sum();
+        double dist = 0d;
+        for (int i = 0; i < totalRoute.size() - 1; i++) {
+            dist += totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1));
+        }
 
         if (sum - dist > 0) {
             String value = String.format("%.2f", sum - dist);
