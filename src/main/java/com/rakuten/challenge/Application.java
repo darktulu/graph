@@ -60,8 +60,8 @@ public class Application {
         // generateGraph();
         // System.out.println();
 
-        // String first = arg[0];
-        String first = "test.file";
+        String first = arg[0];
+        // String first = "test.file";
         var lines = Files.readAllLines(Paths.get(first));
         if (lines.isEmpty()) {
             System.out.println("nothing to process bye bye");
@@ -76,8 +76,8 @@ public class Application {
         var lineNumber = 0;
         // for every scenario need to construct the elements
         for (var scenario = 1; scenario <= scenarios; scenario++) {
-            var startTime = System.nanoTime();
-            System.out.println("Process number " + scenario);
+            // long startTime = System.nanoTime();
+            // System.out.println("Process number " + scenario);
             String[] line = lines.get(lineNumber).split(" ");
             if (line.length != 2) {
                 System.out.println("bad File format");
@@ -120,11 +120,11 @@ public class Application {
             // Shortest route and most profitable first way
             List<Integer> leftShops = new ArrayList<>(prices.keySet());
             Integer iterations = 0;
-            Double bestOptim = - Double.MAX_VALUE;
+            Double bestOptim = -Double.MAX_VALUE;
             Integer bestIteration = 0;
             Node start = graph.getNode(0);
             while (!leftShops.isEmpty()) {
-                Map<Node, Double> checkpointMap = nextNode(graph, initialGraph, leftShops, start);
+                Map<Node, Double> checkpointMap = nextNode(graph, initialGraph, leftShops, start, -Double.MAX_VALUE);
                 Node checkpoint = checkpointMap.keySet().stream().findFirst().get();
                 // start to lose ? after i was wining ?
                 iterations++;
@@ -139,18 +139,18 @@ public class Application {
                 leftShops.removeAll(checkpoint.getShortestPath().stream().map(Node::getName).collect(Collectors.toList()));
             }
 
-            if (bestOptim < 0) {
+            /* if (bestOptim < 0) {
                 System.out.println("Don't leave the house");
                 lineNumber = lineNumber + dvds + roads + 3;
                 continue;
-            }
+            } */
 
             // TODO not like this needs brute force on every combinaison :/
             // best go round i found
             start = graph.getNode(0);
             leftShops = new ArrayList<>(prices.keySet());
             for (int i = 0; i < bestIteration; i++) {
-                Map<Node, Double> checkpointMap = nextNode(graph, initialGraph, leftShops, start);
+                Map<Node, Double> checkpointMap = nextNode(graph, initialGraph, leftShops, start, -Double.MAX_VALUE);
                 Node checkpoint = checkpointMap.keySet().stream().findFirst().get();
 
                 start = checkpoint;
@@ -178,7 +178,7 @@ public class Application {
                 leftReturnPath.remove(inRouteNode);
 
                 bestReturnRoute.add(inRouteNode);
-                Node checkpoint = nextReturnNode(graph, initialGraph, leftShops, inRouteNode).keySet().stream().findFirst().get();
+                var checkpoint = nextNode(graph, initialGraph, leftShops, inRouteNode, 0d).keySet().stream().findFirst().get();
                 if (inRouteNode.equals(checkpoint)) {
                     continue;
                 }
@@ -200,8 +200,8 @@ public class Application {
             printTheResults(graph, bestRoute, bestReturnRoute);
 
             lineNumber = lineNumber + dvds + roads + 3;
-            var endTime = System.nanoTime();
-            System.out.println(" ended in " + (endTime - startTime) / 1_000_000_000.0);
+            // long endTime = System.nanoTime();
+            // System.out.println(" ended in " + (endTime - startTime) / 1_000_000_000.0);
         }
     }
 
@@ -213,11 +213,11 @@ public class Application {
         totalRoute.addAll(bestRoute);
         totalRoute.addAll(bestReturnRoute);
 
-        totalRoute.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
+        // totalRoute.stream().map(node -> " -> Node : " + node.getName()).forEach(System.out::print);
 
-        System.out.println();
-        double sum = totalRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
-        double dist = IntStream.range(0, totalRoute.size() - 1)
+        // System.out.println();
+        var sum = totalRoute.stream().distinct().mapToDouble(Node::getPrize).sum();
+        var dist = IntStream.range(0, totalRoute.size() - 1)
                 .mapToDouble(i -> totalRoute.get(i).getAdjacentNodes().get(totalRoute.get(i + 1)))
                 .sum();
 
@@ -229,53 +229,19 @@ public class Application {
         }
     }
 
-    private static Map<Node, Double> nextNode(Graph graph, Graph initialGraph, List<Integer> leftShops, Node firstOptimisation) {
-        Graph copy = graph.copy();
-        Node start = copy.getNode(firstOptimisation.getName());
+    private static Map<Node, Double> nextNode(Graph graph, Graph initialGraph, List<Integer> leftShops, Node firstOptimisation, Double lowerValue) {
+        var copy = graph.copy();
+        var start = copy.getNode(firstOptimisation.getName());
 
         var calculatedGraph = Dijkstra.calculateShortestPathFromSource(copy, start);
 
         // calculation of profit
-        Node resultNode = firstOptimisation;
-        var bestOptimisation = - Double.MAX_VALUE;
+        var resultNode = firstOptimisation;
+        var bestOptimisation = lowerValue;
         for (int i = 0, integersSize = leftShops.size(); i < integersSize; i++) {
             Integer shop = leftShops.get(i);
-            Double retour = initialGraph.getNode(shop).getDistance();
-            Double dist = calculatedGraph.getNode(shop).getDistance();
-
-            var opt = calculatedGraph.getNode(shop).getPrize();
-
-            for (var node : calculatedGraph.getNode(shop).getShortestPath()) {
-                if (leftShops.contains(node.getName())) {
-                    opt += calculatedGraph.getNode(node.getName()).getPrize();
-                }
-            }
-            var bestDist = Math.min(retour + dist, dist * 2);
-            if (opt - bestDist > bestOptimisation) {
-                bestOptimisation = opt - retour - dist;
-                resultNode = calculatedGraph.getNode(shop);
-            }
-
-            // System.out.println("shop: " + shop + " dist: " + dist + " opt: " + opt);
-        }
-        Map<Node, Double> result = new HashMap<>();
-        result.put(resultNode, bestOptimisation);
-        return result;
-    }
-
-    private static Map<Node, Double> nextReturnNode(Graph graph, Graph initialGraph, List<Integer> leftShops, Node firstOptimisation) {
-        Graph copy = graph.copy();
-        Node start = copy.getNode(firstOptimisation.getName());
-
-        var calculatedGraph = Dijkstra.calculateShortestPathFromSource(copy, start);
-
-        // calculation of profit
-        Node resultNode = firstOptimisation;
-        var bestOptimisation = 0d;
-        for (int i = 0, integersSize = leftShops.size(); i < integersSize; i++) {
-            Integer shop = leftShops.get(i);
-            Double retour = initialGraph.getNode(shop).getDistance();
-            Double dist = calculatedGraph.getNode(shop).getDistance();
+            var retour = initialGraph.getNode(shop).getDistance();
+            var dist = calculatedGraph.getNode(shop).getDistance();
 
             var opt = calculatedGraph.getNode(shop).getPrize();
 
@@ -320,7 +286,7 @@ public class Application {
 
     // PARSING METHODS NOT IMPORTANT...
     private static void dvds(List<String> lines, int lineNumber, Graph graph,
-                             Integer roads, HashMap<Integer, Double> prices, Integer dvds) {
+                             Integer roads, Map<Integer, Double> prices, Integer dvds) {
         for (var dvd = 1; dvd <= dvds; dvd++) {
             String[] optimizations = lines.get(lineNumber + roads + dvd + 1).split(" ");
             var shopNumber = parse(optimizations[0]);
